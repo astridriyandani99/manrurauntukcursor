@@ -21,37 +21,59 @@ const ChartCard: React.FC<{ title: string; children: React.ReactNode }> = ({ tit
 const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ wards, allAssessments, manruraData }) => {
     
     const reportData = useMemo(() => {
+        // Map of point ID to point text. The single source of truth for valid points.
         const pointMap = new Map(manruraData.flatMap(std => std.elements.flatMap(el => el.poin.map(p => [p.id, p.text]))));
+        
+        // Map of standard ID to its list of point IDs.
         const standardPointMap = new Map(manruraData.map(std => [std.id, std.elements.flatMap(el => el.poin.map(p => p.id))]));
         
+        // Filter all assessments to only include data for valid points.
+        const validAssessments: AllAssessments = {};
         let totalAssessedCount = 0;
+
+        for (const wardId in allAssessments) {
+            if (Object.prototype.hasOwnProperty.call(allAssessments, wardId)) {
+                validAssessments[wardId] = {};
+                const wardData = allAssessments[wardId];
+                for (const poinId in wardData) {
+                     if (Object.prototype.hasOwnProperty.call(wardData, poinId) && pointMap.has(poinId)) { // Check if the point is valid
+                        const assessment = wardData[poinId];
+                        validAssessments[wardId][poinId] = assessment;
+                        if (assessment.assessor?.score !== null && assessment.assessor?.score !== undefined) {
+                            totalAssessedCount++;
+                        }
+                    }
+                }
+            }
+        }
         
-        // Per-Ward Scores
+        const hasData = totalAssessedCount > 0;
+
+        // Per-Ward Scores using only valid data
         const wardScores = wards.map(ward => {
-            const wardData = allAssessments[ward.id] || {};
+            const wardData = validAssessments[ward.id] || {};
             const scores = Object.values(wardData)
                 .map(d => d.assessor?.score)
                 .filter((s): s is number => s !== undefined && s !== null);
             
-            if (scores.length > 0) totalAssessedCount += scores.length;
             const average = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
             return { name: ward.name, average };
         });
 
-        // Per-Standard Scores
+        // Per-Standard Scores using valid data
         const standardScores = manruraData.map(std => {
             const pointIds = standardPointMap.get(std.id) || [];
             const scores = wards.flatMap(ward => {
-                const wardData = allAssessments[ward.id] || {};
+                const wardData = validAssessments[ward.id] || {}; // Use filtered data
                 return pointIds.map(pid => wardData[pid]?.assessor?.score).filter((s): s is number => s !== undefined && s !== null);
             });
             const average = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
             return average;
         });
 
-        // Per-Poin Scores
+        // Per-Poin Scores using valid data
         const pointScores: { [key: string]: number[] } = {};
-        Object.values(allAssessments).forEach(wardData => {
+        Object.values(validAssessments).forEach(wardData => {
             Object.entries(wardData).forEach(([poinId, data]) => {
                 if (data.assessor?.score !== null && data.assessor?.score !== undefined) {
                     if (!pointScores[poinId]) pointScores[poinId] = [];
@@ -62,14 +84,14 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ wards, allAsses
 
         const pointScoreAverages = Object.entries(pointScores).map(([poinId, scores]) => ({
             id: poinId,
-            text: pointMap.get(poinId) || 'Poin tidak diketahui',
+            text: pointMap.get(poinId)!, // We know this exists now because of the pre-filtering
             average: scores.reduce((a, b) => a + b, 0) / scores.length,
         })).sort((a, b) => a.average - b.average);
 
         const weakestPoints = pointScoreAverages.slice(0, 5);
         const strongestPoints = [...pointScoreAverages].sort((a,b) => b.average - a.average).slice(0, 5);
 
-        return { wardScores, standardScores, weakestPoints, strongestPoints, hasData: totalAssessedCount > 0 };
+        return { wardScores, standardScores, weakestPoints, strongestPoints, hasData };
 
     }, [wards, allAssessments, manruraData]);
     
