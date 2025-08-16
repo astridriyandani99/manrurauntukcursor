@@ -1,10 +1,11 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import type { User } from '../types';
+import type { User, UserRole } from '../types';
 
 interface AuthContextType {
   currentUser: User | null;
   login: (email: string, password: string, users: User[]) => Promise<void>;
   logout: () => void;
+  switchUserRole: (role: UserRole, wardId?: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -48,8 +49,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCurrentUser(null);
   };
 
+  const switchUserRole = (role: UserRole, wardId?: string) => {
+    setCurrentUser(prevUser => {
+      if (!prevUser) return null;
+      
+      const newUser: User = { ...prevUser, role };
+      
+      if (role === 'Ward Staff') {
+        // Assign wardId if provided, otherwise keep existing.
+        newUser.wardId = wardId || prevUser.wardId;
+      } else {
+        // Remove wardId for non-staff roles
+        delete newUser.wardId;
+      }
+      
+      return newUser;
+    });
+  };
+
   return (
-    <AuthContext.Provider value={{ currentUser, login, logout }}>
+    <AuthContext.Provider value={{ currentUser, login, logout, switchUserRole }}>
       {children}
     </AuthContext.Provider>
   );

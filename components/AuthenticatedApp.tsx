@@ -5,10 +5,12 @@ import Chatbot from './Chatbot';
 import AdminDashboard from './AdminDashboard';
 import { manruraData } from '../data/manruraData';
 import type { Standard, User, Ward, AllAssessments, AssessmentScore, AssessmentPeriod } from '../types';
-import { ArrowLeftIcon } from './Icons';
+import { ArrowLeftIcon, Bars3Icon } from './Icons';
 import * as api from '../services/apiService';
 import { useApiKey } from '../contexts/ApiKeyContext';
 import SaveStatusIndicator, { SaveStatus } from './SaveStatusIndicator';
+import UserRoleSwitcher from './UserRoleSwitcher';
+import { APP_TITLE } from '../constants';
 
 
 interface AuthenticatedAppProps {
@@ -38,6 +40,7 @@ const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({
   const [selectedStandard, setSelectedStandard] = useState<Standard | null>(manruraData[0]);
   const { apiKey } = useApiKey();
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   const initialWardId = currentUser.role === 'Ward Staff' 
     ? currentUser.wardId 
@@ -175,72 +178,107 @@ const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({
   const assessmentDataForDisplay = allAssessments[wardIdForDisplay!] || {};
   const adminSelectedWard = adminSelectedWardId ? wards.find(w => w.id === adminSelectedWardId) : null;
 
+  const getMobileHeaderTitle = () => {
+    if (currentUser.role === 'Admin') {
+        if (adminSelectedWardId && selectedStandard) {
+            const wardName = wards.find(w => w.id === adminSelectedWardId)?.name || '';
+            return `Audit: ${wardName}`;
+        }
+        return 'Admin Dashboard';
+    }
+    return selectedStandard?.shortTitle || APP_TITLE;
+  };
+  const mobileHeaderTitle = getMobileHeaderTitle();
+
+
   return (
-    <div className="flex h-screen font-sans antialiased">
-      <Sidebar 
-        standards={manruraData}
-        selectedStandardId={selectedStandardId}
-        setSelectedStandardId={setSelectedStandardId}
-        currentUser={currentUser}
-        wards={wards}
-        selectedWardId={selectedWardId}
-        setSelectedWardId={setSelectedWardId}
-      />
-      <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 bg-slate-100">
-        {!isAssessmentActive && currentUser.role !== 'Admin' && (
-            <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 p-4 mb-6 rounded-r-lg" role="alert">
-              <p className="font-bold">Periode Penilaian Tidak Aktif</p>
-              <p>Penilaian hanya dapat diubah selama periode aktif. Perubahan yang dibuat saat ini <strong className="underline">tidak akan disimpan</strong>.</p>
-            </div>
-        )}
-        {currentUser.role === 'Admin' && (!adminSelectedWardId || selectedStandardId === 'admin_page') ? (
-            <AdminDashboard 
-                wards={wards} 
-                allUsers={allUsers}
-                allAssessments={allAssessments}
-                manruraData={manruraData}
-                assessmentPeriods={assessmentPeriods}
-                onAddWard={addWard}
-                onAddUser={addUser}
-                onSelectWard={handleAdminSelectWard}
-                onAddAssessmentPeriod={addAssessmentPeriod}
-            />
-        ) : isViewingAsAdminDetail && selectedStandard ? ( // Admin viewing specific ward
-            <div>
-                <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4">
-                    <h2 className="text-2xl font-bold text-slate-800">
-                    Hasil Audit: <span className="text-sky-700">{adminSelectedWard?.name}</span>
-                    </h2>
-                    <button 
-                    onClick={handleReturnToDashboard}
-                    className="flex items-center justify-center sm:justify-start px-4 py-2 bg-slate-600 text-white rounded-md hover:bg-slate-700 transition-colors text-sm font-medium"
-                    >
-                    <ArrowLeftIcon className="w-5 h-5 mr-2"/>
-                    Kembali ke Dashboard
-                    </button>
-                </div>
-                <ContentDisplay 
+    <div className="h-screen font-sans antialiased">
+      {isSidebarOpen && (
+        <div
+            onClick={() => setIsSidebarOpen(false)}
+            className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
+            aria-hidden="true"
+        />
+      )}
+      <div className="flex h-full">
+          <Sidebar 
+            standards={manruraData}
+            selectedStandardId={selectedStandardId}
+            setSelectedStandardId={setSelectedStandardId}
+            currentUser={currentUser}
+            wards={wards}
+            selectedWardId={selectedWardId}
+            setSelectedWardId={setSelectedWardId}
+            isOpen={isSidebarOpen}
+            onClose={() => setIsSidebarOpen(false)}
+          />
+          <main className="flex-1 flex flex-col overflow-hidden">
+            {/* Mobile Header */}
+            <header className="md:hidden bg-white/80 backdrop-blur-sm border-b border-slate-200 p-4 flex items-center gap-4 sticky top-0 z-20">
+                <button onClick={() => setIsSidebarOpen(true)} className="text-slate-600 p-1 rounded-md hover:bg-slate-200" aria-label="Open menu">
+                    <Bars3Icon className="w-6 h-6" />
+                </button>
+                <h1 className="font-semibold text-slate-800 text-base truncate">{mobileHeaderTitle}</h1>
+            </header>
+
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 bg-slate-100">
+                {!isAssessmentActive && currentUser.role !== 'Admin' && (
+                    <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 p-4 mb-6 rounded-r-lg" role="alert">
+                      <p className="font-bold">Periode Penilaian Tidak Aktif</p>
+                      <p>Penilaian hanya dapat diubah selama periode aktif. Perubahan yang dibuat saat ini <strong className="underline">tidak akan disimpan</strong>.</p>
+                    </div>
+                )}
+                {currentUser.role === 'Admin' && (!adminSelectedWardId || selectedStandardId === 'admin_page') ? (
+                    <AdminDashboard 
+                        wards={wards} 
+                        allUsers={allUsers}
+                        allAssessments={allAssessments}
+                        manruraData={manruraData}
+                        assessmentPeriods={assessmentPeriods}
+                        onAddWard={addWard}
+                        onAddUser={addUser}
+                        onSelectWard={handleAdminSelectWard}
+                        onAddAssessmentPeriod={addAssessmentPeriod}
+                    />
+                ) : isViewingAsAdminDetail && selectedStandard ? ( // Admin viewing specific ward
+                    <div>
+                        <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4">
+                            <h2 className="text-2xl font-bold text-slate-800">
+                            Hasil Audit: <span className="text-sky-700">{adminSelectedWard?.name}</span>
+                            </h2>
+                            <button 
+                            onClick={handleReturnToDashboard}
+                            className="flex items-center justify-center sm:justify-start px-4 py-2 bg-slate-600 text-white rounded-md hover:bg-slate-700 transition-colors text-sm font-medium"
+                            >
+                            <ArrowLeftIcon className="w-5 h-5 mr-2"/>
+                            Kembali ke Dashboard
+                            </button>
+                        </div>
+                        <ContentDisplay 
+                            standard={selectedStandard}
+                            currentUser={currentUser}
+                            assessmentData={assessmentDataForDisplay}
+                            onScoreChange={() => {}} // Read-only for Admin
+                            users={allUsers}
+                            isAssessmentActive={true} // Admin can always see content as if active
+                        />
+                    </div>
+                ) : ( // Assessor or Ward Staff view
+                  <ContentDisplay 
                     standard={selectedStandard}
                     currentUser={currentUser}
                     assessmentData={assessmentDataForDisplay}
-                    onScoreChange={() => {}} // Read-only for Admin
+                    onScoreChange={handleScoreChange}
                     users={allUsers}
-                    isAssessmentActive={true} // Admin can always see content as if active
-                />
+                    isAssessmentActive={isAssessmentActive}
+                  />
+                )}
             </div>
-        ) : ( // Assessor or Ward Staff view
-          <ContentDisplay 
-            standard={selectedStandard}
-            currentUser={currentUser}
-            assessmentData={assessmentDataForDisplay}
-            onScoreChange={handleScoreChange}
-            users={allUsers}
-            isAssessmentActive={isAssessmentActive}
-          />
-        )}
-      </main>
+          </main>
+      </div>
       {apiKey && <Chatbot />}
       <SaveStatusIndicator status={saveStatus} />
+      <UserRoleSwitcher wards={wards} />
     </div>
   );
 };

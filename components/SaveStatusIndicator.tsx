@@ -39,28 +39,28 @@ const SaveStatusIndicator: React.FC<SaveStatusIndicatorProps> = ({ status }) => 
     let message: string | null = null;
 
     if (status === 'saving') {
-        icon = <SpinnerIcon className="w-4 h-4 text-slate-600" />;
+        icon = <SpinnerIcon className="w-5 h-5 text-slate-600" />;
         text = 'Menyimpan...';
-        bgColor = 'bg-slate-200';
+        bgColor = 'bg-slate-200 border-slate-300';
     } else if (status === 'success') {
-        icon = <CheckIcon className="w-4 h-4 text-green-600" />;
+        icon = <CheckIcon className="w-5 h-5 text-green-600" />;
         text = 'Tersimpan';
-        bgColor = 'bg-green-100';
+        bgColor = 'bg-green-100 border-green-200';
     } else { // Error state
-        icon = <ErrorIcon className="w-4 h-4 text-red-600" />;
+        icon = <ErrorIcon className="w-5 h-5 text-red-600" />;
         text = 'Gagal Menyimpan';
-        bgColor = 'bg-red-100';
-        message = status.message.includes('CONFIG_ERROR: SCRIPT_URL')
-            ? 'Error Konfigurasi: SCRIPT_URL belum diatur di apiService.ts'
-            : 'Perubahan gagal disimpan. Periksa koneksi Anda.';
+        bgColor = 'bg-red-100 border-red-200';
+        message = status.message; // Display the detailed message directly
     }
 
     return (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 transition-opacity duration-300">
-            <div className={`flex items-center gap-2 px-4 py-2 rounded-full shadow-lg text-sm font-medium border ${bgColor}`}>
-                {icon}
-                <span className="text-slate-800">{text}</span>
-                {message && <span className="text-xs text-slate-600 hidden sm:inline">- {message}</span>}
+        <div className="fixed bottom-4 left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 sm:right-auto sm:max-w-md z-50 transition-opacity duration-300">
+            <div className={`flex items-start gap-3 p-3 rounded-lg shadow-lg text-sm border ${bgColor}`}>
+                <div className="flex-shrink-0 mt-0.5">{icon}</div>
+                <div>
+                    <p className="font-semibold text-slate-800">{text}</p>
+                    {message && <p className="text-xs text-slate-700 mt-1">{message}</p>}
+                </div>
             </div>
         </div>
     );

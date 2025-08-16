@@ -2,7 +2,7 @@ import React from 'react';
 import type { Standard, User, Ward } from '../types';
 import { APP_TITLE } from '../constants';
 import WardSelector from './WardSelector';
-import { Cog6ToothIcon, UserCircleIcon, ArrowRightOnRectangleIcon, BuildingOfficeIcon } from './Icons';
+import { Cog6ToothIcon, UserCircleIcon, ArrowRightOnRectangleIcon, BuildingOfficeIcon, XMarkIcon } from './Icons';
 import { useAuth } from '../contexts/AuthContext';
 
 interface SidebarProps {
@@ -13,6 +13,8 @@ interface SidebarProps {
   wards: Ward[];
   selectedWardId: string;
   setSelectedWardId: (id: string) => void;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ 
@@ -23,6 +25,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   wards, 
   selectedWardId, 
   setSelectedWardId,
+  isOpen,
+  onClose,
 }) => {
   const { logout } = useAuth();
   const isAdminView = selectedStandardId === 'admin_page';
@@ -31,10 +35,18 @@ const Sidebar: React.FC<SidebarProps> = ({
     ? wards.find(w => w.id === currentUser.wardId) 
     : null;
 
+  const handleNavigation = (id: string) => {
+    setSelectedStandardId(id);
+    onClose();
+  };
+
   return (
-    <aside className="w-80 flex-shrink-0 bg-slate-800 text-white flex flex-col">
-      <div className="h-16 flex items-center justify-center px-4 border-b border-slate-700">
-        <h1 className="text-lg font-bold text-center text-slate-200">{APP_TITLE}</h1>
+    <aside className={`w-80 flex-shrink-0 bg-slate-800 text-white flex flex-col fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <div className="h-16 flex items-center justify-between px-4 border-b border-slate-700">
+        <h1 className="text-lg font-bold text-slate-200">{APP_TITLE}</h1>
+        <button onClick={onClose} className="md:hidden p-1 text-slate-400 hover:text-white" aria-label="Close menu">
+          <XMarkIcon className="w-6 h-6" />
+        </button>
       </div>
       
       <div className="p-4 bg-slate-900">
@@ -68,7 +80,7 @@ const Sidebar: React.FC<SidebarProps> = ({
              <div className="py-2 border-b border-slate-700">
                 <p className="px-4 pt-2 pb-2 text-xs font-semibold text-slate-500 uppercase">Admin</p>
                 <button
-                    onClick={() => setSelectedStandardId('admin_page')}
+                    onClick={() => handleNavigation('admin_page')}
                     className={`w-full text-left px-4 py-3 text-sm flex items-center transition-colors duration-200 ${
                     isAdminView
                         ? 'bg-sky-600 text-white'
@@ -86,7 +98,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           {standards.map((standard) => (
             <li key={standard.id}>
               <button
-                onClick={() => setSelectedStandardId(standard.id)}
+                onClick={() => handleNavigation(standard.id)}
                 className={`w-full text-left px-4 py-3 text-sm flex items-center transition-colors duration-200 ${
                   selectedStandardId === standard.id && !isAdminView
                     ? 'bg-sky-600 text-white'

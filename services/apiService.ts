@@ -24,6 +24,8 @@ async function apiRequest(action: string, payload: any = {}): Promise<any> {
 
     const options: RequestInit = {
         method: 'POST',
+        mode: 'cors', // Explicitly set mode
+        cache: 'no-cache', // Prevent browser caching issues
         redirect: 'follow',
         headers: {
             'Content-Type': 'text/plain;charset=utf-8', // Required for Apps Script simple POST
@@ -46,7 +48,7 @@ async function apiRequest(action: string, payload: any = {}): Promise<any> {
 
     } catch (error) {
         console.error(`Error during POST request for action "${action}":`, error);
-        if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        if (error instanceof TypeError && (error.message.includes('Failed to fetch') || error.message.includes('NetworkError'))) {
              throw new Error('A network error occurred. This is likely a CORS issue or a problem with the API script. Please ensure the Google Apps Script is deployed correctly with "Anyone" access and that the SCRIPT_URL is correct.');
         }
         throw error;
