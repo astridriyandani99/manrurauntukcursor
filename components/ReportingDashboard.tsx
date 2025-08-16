@@ -21,13 +21,13 @@ const ChartCard: React.FC<{ title: string; children: React.ReactNode }> = ({ tit
 const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ wards, allAssessments, manruraData }) => {
     
     const reportData = useMemo(() => {
-        // Map of point ID to point text. The single source of truth for valid points.
+        // Peta ID poin ke teks poin. Ini adalah satu-satunya sumber kebenaran untuk poin yang valid.
         const pointMap = new Map(manruraData.flatMap(std => std.elements.flatMap(el => el.poin.map(p => [p.id, p.text]))));
         
-        // Map of standard ID to its list of point IDs.
+        // Peta ID standar ke daftar ID poinnya.
         const standardPointMap = new Map(manruraData.map(std => [std.id, std.elements.flatMap(el => el.poin.map(p => p.id))]));
         
-        // Filter all assessments to only include data for valid points.
+        // Saring semua penilaian untuk hanya menyertakan data untuk poin yang valid.
         const validAssessments: AllAssessments = {};
         let totalAssessedCount = 0;
 
@@ -36,7 +36,7 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ wards, allAsses
                 validAssessments[wardId] = {};
                 const wardData = allAssessments[wardId];
                 for (const poinId in wardData) {
-                     if (Object.prototype.hasOwnProperty.call(wardData, poinId) && pointMap.has(poinId)) { // Check if the point is valid
+                     if (Object.prototype.hasOwnProperty.call(wardData, poinId) && pointMap.has(poinId)) { // Periksa apakah poin itu valid
                         const assessment = wardData[poinId];
                         validAssessments[wardId][poinId] = assessment;
                         if (assessment.assessor?.score !== null && assessment.assessor?.score !== undefined) {
@@ -49,7 +49,7 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ wards, allAsses
         
         const hasData = totalAssessedCount > 0;
 
-        // Per-Ward Scores using only valid data
+        // Skor Per Ruangan hanya menggunakan data yang valid
         const wardScores = wards.map(ward => {
             const wardData = validAssessments[ward.id] || {};
             const scores = Object.values(wardData)
@@ -60,18 +60,18 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ wards, allAsses
             return { name: ward.name, average };
         });
 
-        // Per-Standard Scores using valid data
+        // Skor Per Standar menggunakan data yang valid
         const standardScores = manruraData.map(std => {
             const pointIds = standardPointMap.get(std.id) || [];
             const scores = wards.flatMap(ward => {
-                const wardData = validAssessments[ward.id] || {}; // Use filtered data
+                const wardData = validAssessments[ward.id] || {}; // Gunakan data yang telah difilter
                 return pointIds.map(pid => wardData[pid]?.assessor?.score).filter((s): s is number => s !== undefined && s !== null);
             });
             const average = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
             return average;
         });
 
-        // Per-Poin Scores using valid data
+        // Skor Per Poin menggunakan data yang valid
         const pointScores: { [key: string]: number[] } = {};
         Object.values(validAssessments).forEach(wardData => {
             Object.entries(wardData).forEach(([poinId, data]) => {
@@ -84,7 +84,7 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ wards, allAsses
 
         const pointScoreAverages = Object.entries(pointScores).map(([poinId, scores]) => ({
             id: poinId,
-            text: pointMap.get(poinId)!, // We know this exists now because of the pre-filtering
+            text: pointMap.get(poinId)!, // Kita tahu ini ada karena pra-pemfilteran
             average: scores.reduce((a, b) => a + b, 0) / scores.length,
         })).sort((a, b) => a.average - b.average);
 
